@@ -1,27 +1,48 @@
 import gradio as gr
+import pandas as pd
+import csv
 
-def record_transaction(income, expense):
-    # 백엔드로 수입과 지출 내역을 전달하는 로직을 구현합니다.
-    # 필요한 데이터 처리 및 저장을 수행합니다.
-    # ...
+file_path="AccountBook.csv"
+account_book = pd.read_csv(file_path)
 
-    # 성공적으로 저장되었다는 메시지를 반환합니다.
-    return "Transaction recorded successfully!"
+def view_records():
+    return account_book
+
+def input_records(분류,날짜,항목,금액,카테고리,메모):
+    global account_book
+    new_record = pd.DataFrame([[분류, 날짜, 항목, 금액, 카테고리, 메모]], columns=['분류', '날짜', '항목', '금액', '카테고리', '메모'])
+    account_book = account_book.append(new_record, index=True)
+    account_book.to_csv(file_path, index=True)
+
 
 def interface():
-    # 수입과 지출을 입력받는 텍스트 필드를 생성합니다.
-    income_input = gr.inputs.Textbox(label="Income")
-    expense_input = gr.inputs.Textbox(label="Expense")
+    with gr.Blocks("가계부") as app_interface:
+        with gr.Tab("조회"):
+            view_interface = gr.Interface(rf = view_records, label = "조회", inputs=None, outputs="dataframe")
+            view_interface.launch()
 
-    # 입력된 데이터를 처리하는 함수와 텍스트를 표시하는 요소를 연결합니다.
-    transaction_output = gr.outputs.Textbox(label="Transaction Result")
+        with gr.Tab("입력"):
+            input_text = gr.Interface(fn=input_records, inputs=[gr.Checkbox("수입"),
+                                                                gr.Checkbox("지출"), 
+                                                                "text", "text", "text", "number", "text", "text"],
+                                                                outputs=None, title="가계부 입력")
+            input_text.launch()
 
-    # 인터페이스의 구성 요소들을 정의합니다.
-    inputs = [income_input, expense_input]
-    outputs = [transaction_output]
+        with gr.Tab("수정"):
+            input_text = gr.Interface(fn=input_records, inputs=[gr.Checkbox("수입"),
+                                                                gr.Checkbox("지출"), 
+                                                                "text", "text", "text", "number", "text", "text"],
+                                                                outputs=None, title="가계부 입력")
+            input_text.launch()
 
-    # Gradio 인터페이스를 생성하고 구성 요소들을 연결합니다.
-    gr.Interface(fn=record_transaction, inputs=inputs, outputs=outputs).launch()
+        with gr.Tab("삭제"):
+            input_text = gr.Interface(fn=input_records, inputs=[gr.Checkbox("수입"),
+                                                                gr.Checkbox("지출"), 
+                                                                "text", "text", "text", "number", "text", "text"],
+                                                                outputs=None, title="가계부 입력")
+            input_text.launch()
+
+    app_interface.launch()
 
 if __name__ == "__main__":
     interface()

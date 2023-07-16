@@ -1,26 +1,27 @@
+import pandas as pd
 import gradio as gr
-import requests
-import pandas
 
-def greet(name):
-    return "Hello " + name + "!"
+# AccountBook.csv 파일을 데이터프레임으로 불러오기
+file_path="AccountBook.csv"
+account_book = pd.read_csv(file_path)
 
-demo = gr.Interface(fn=greet, inputs="text", outputs="text")
-demo.launch()
+# 데이터프레임을 출력하는 함수
+def view_records():
+    return account_book
 
+# Gradio 인터페이스 생성
+def interface():
+    with gr.Blocks() as app_interface:
+        with gr.Tab("조회"):
+            iface = gr.Interface(fn=view_records, 
+                     title='Account Book Viewer', 
+                     description='View Account Book DataFrame',
+                     layout='wide',
+                     inputs=None,  # 입력 없음
+                     outputs="text")  # 출력 형식은 텍스트로 설정)
+            iface.launch()
 
-def sum(a,b):
-    c = a + b
-    return c
+    app_interface.launch()
 
-
-# API 사용법
-# requests.get(url="")
-# pandas로 테이블로 만들어서 
-# # jason형식으로 해석
-# dataframe으로 가공
-
-
-iface = gr.Interface(sum, input = {"number", "number"}, outputs={"text"})
-# 입출력의 개수와 타입이 맞아야 함
-iface.launch
+if __name__ == "__main__":
+    interface()
