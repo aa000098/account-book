@@ -6,7 +6,6 @@ import os
 import io
 
 file_name = 'AccountBook.csv'
-
 dotenv.load_dotenv("C:/Users/손현호/account_book/app/frontend/.env", override=True)
 
 def get_csv():
