@@ -25,7 +25,12 @@ def get_csv():
     account_book = pd.read_csv(io.BytesIO(csv_content))
     return account_book
 
-def create_csv(bucket):
+def create_csv(file_name, file_contents):
+    lambda_client = boto3.client("lambda")
+    response = lambda_client.invoke(
+        FunctionName = ""
+    )
+    
     df = pd.DataFrame(columns = ['분류','날짜','사용처','금액','카테고리','메모'])
     account_book = df.to_csv(index=False)
     bucket.put_object(Body = account_book, Key = file_name)

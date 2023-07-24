@@ -14,26 +14,37 @@ export class MoneybookLambdaStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: MoneybookStackProps) {
         super(scope, id, props);
 
-        const lambdaRole = new Role(this, '${SYSTEM_NAME}-lambda-role', {
-            roleName: '${getAccountUniqueName(props.context)}-lambda-rol',
+        const lambdaRole = new Role(this, `${SYSTEM_NAME}-lambda-role`, {
+            roleName: `${getAccountUniqueName(props.context)}-lambda-rol`,
             assumedBy: new CompositePrincipal(
-                new ServicePrincipal('lambda.amanonaws.com')
+                new ServicePrincipal('lambda.amazonaws.com')
             ),
             managedPolicies: [
                 ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
                 ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
             ]
-        })
+        });
 
-        new PythonFunction(this, '${SYSTEM_NAME}-create-file', {
-            functionName: '${getAccountUniqueName(props.context)}-create-file',
-            entry: path.join(__dirname, '../../../app/backend/reate-file'),
+        new PythonFunction(this, `${SYSTEM_NAME}-create-file`, {
+            functionName: `${getAccountUniqueName(props.context)}-create-file`,
+            entry: path.join(__dirname, '../../../app/backend/create-file'),
             index: 'create_file.py',
             runtime: Runtime.PYTHON_3_10,
             role: lambdaRole,
             environment: {
                 'BUCKET_NAME': props.s3Stack!.bucket.bucketName,
             }
-        })
+        });
+
+        new PythonFunction(this, `${SYSTEM_NAME}-read-file`, {
+            functionName: `${getAccountUniqueName(props.context)}-read-file`,
+            entry: path.join(__dirname, '../../../app/backend/read-file'),
+            index: 'read_file.py',
+            runtime: Runtime.PYTHON_3_10,
+            role: lambdaRole,
+            environment: {
+                'BUCKET_NAME': props.s3Stack!.bucket.bucketName,
+            }
+        });
     }
 }

@@ -12,12 +12,12 @@ export interface MoneybookStackProps extends cdk.StackProps {
 }
 
 export class MoneybookStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props : MoneybookStackProps) {
     super(scope, id, props);
 
-    const s3Stack = new MoneybookS3Stack(this, '${SYSTEM_NAME}-s3Stack', props);
+    const s3Stack = new MoneybookS3Stack(this, `${SYSTEM_NAME}-s3Stack`, props);
     props.s3Stack = s3Stack;
 
-    new MoneybookLambdaStack(this, '${SYSTEM_NAME}-lambdaStack', props)
+    new MoneybookLambdaStack(this, `${SYSTEM_NAME}-lambdaStack`, props)
   }
 }
