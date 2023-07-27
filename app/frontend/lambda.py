@@ -1,5 +1,6 @@
 import gradio as gr
 import pandas as pd
+import json
 import boto3
 import dotenv
 import os
@@ -12,29 +13,32 @@ dropdown_category = ["식비", "카페ㆍ간식", "편의점ㆍ마트ㆍ잡화",
                      "미용", "교통ㆍ자동차", "여행ㆍ숙박", "교육", "생활", "기부ㆍ후원", 
                      "카테고리 없음", "ATM 출금", "이체", "급여", "저축ㆍ투자"]
 
-def get_csv():
-    global file_name
+def get_csv(file_name):
+    
     session = boto3.Session()
     s3 = session.resource('s3')
     bucket = s3.Bucket(os.getenv("BUCKET_NAME"))
     try:
         object = bucket.Object(file_name)
     except:
-        object = create_csv(bucket)
+        object = create_csv(file_name)
     csv_content = object.get()['Body'].read()
     account_book = pd.read_csv(io.BytesIO(csv_content))
     return account_book
 
-def create_csv(file_name, file_contents):
+def create_csv(file_name):
     lambda_client = boto3.client("lambda")
     response = lambda_client.invoke(
-        FunctionName = ""
+        FunctionName = 'son-hyunho-ICN-handler-file',
+        InvocationType = 'RequestResponse',
+        Payload = json.dumps({
+            "method" : "create",
+            "file_name" : file_name
+        })
     )
+    response_payload = response['Payload'].read().decode('utf-8')
     
-    df = pd.DataFrame(columns = ['분류','날짜','사용처','금액','카테고리','메모'])
-    account_book = df.to_csv(index=False)
-    bucket.put_object(Body = account_book, Key = file_name)
-    return bucket.Object(file_name)
+
 
 def update_csv(account_book):
     global file_name
@@ -46,17 +50,20 @@ def update_csv(account_book):
 
 #-----------------------------------------------
 def view_records():
-    return get_csv()
+    global file_name
+    return get_csv(file_name)
 
 def input_records(분류,날짜,사용처,금액,카테고리,메모):
-    account_book = get_csv()
+    global file_name
+    account_book = get_csv(file_name)
     new_record = pd.DataFrame([[분류, 날짜, 사용처, 금액, 카테고리, 메모]], 
                               columns=['분류', '날짜', '사용처', '금액', '카테고리', '메모'])
     account_book = pd.concat([account_book, new_record])
     update_csv(account_book)
 
 def correct_records(인덱스,분류,날짜,사용처,금액,카테고리,메모):
-    account_book = get_csv()
+    global file_name
+    account_book = get_csv(file_name)
     if (인덱스<1) or (인덱스>account_book.shape[0]):
         return 0
     else:
@@ -64,14 +71,16 @@ def correct_records(인덱스,분류,날짜,사용처,금액,카테고리,메모
         update_csv(account_book)
 
 def view_index():
-    account_book = get_csv()
+    global file_name
+    account_book = get_csv(file_name)
     df_with_index = account_book.reset_index()
     df_with_index.columns = ['인덱스'] + list(account_book.columns)
     df_with_index['인덱스'] += 1
     return df_with_index
 
 def delete_records(인덱스):
-    account_book = get_csv()
+    global file_name
+    account_book = get_csv(file_name)
     if (인덱스<1) or (인덱스>account_book.shape[0]):
         val = pd.DataFrame()
     else:

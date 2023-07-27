@@ -15,3 +15,5 @@ if (process.env.USER !== undefined) {
         });
     }
 }
+
+app.synth();
