@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import boto3
 import dotenv
-import os
 import io
 
 file_name = 'AccountBook.csv'
@@ -27,7 +26,8 @@ def create_csv(file_name):
             "file_contents" : account_book
         })
     )
-    return response
+    response_payload = json.loads(response["Payload"].read().decode('utf-8'))
+    return response_payload
     
 def get_csv(file_name):
     lambda_client = boto3.client("lambda")
@@ -39,11 +39,14 @@ def get_csv(file_name):
             "file_name" : file_name,
         })
     )
-    if (response['statusCode'].read().decode('utf-8') != 200):
-        response = create_csv(file_name)
+    response_payload = json.loads(response["Payload"].read().decode('utf-8'))
 
-    csv_content = response['file_contents'].read()
-    account_book = pd.read_csv(io.BytesIO(csv_content))
+    if 'statusCode' not in response_payload or response_payload["statusCode"] != 200:
+        response_payload = create_csv(file_name)
+    
+    csv_content = response_payload['file_contents']
+    csv_bytes = bytes(csv_content, 'utf-8')
+    account_book = pd.read_csv(io.BytesIO(csv_bytes))
     return account_book
 
 def update_csv(file_name, account_book):
@@ -56,11 +59,12 @@ def update_csv(file_name, account_book):
         Payload = json.dumps({
             "method" : "update",
             "file_name" : file_name,
-            "file_contents" : account_book
+            "file_contents" : csv_file
         })
     )
 
-def delete_csv(file_name):
+def delete_csv():
+    global file_name
     lambda_client = boto3.client("lambda")
     response = lambda_client.invoke(
         FunctionName = 'son-hyunho-ICN-handler-file',
@@ -91,7 +95,7 @@ def correct_records(인덱스,분류,날짜,사용처,금액,카테고리,메모
         return 0
     else:
         account_book.loc[인덱스-1] = [분류,날짜,사용처,금액,카테고리,메모]
-        update_csv(account_book)
+        update_csv(file_name, account_book)
 
 def view_index():
     global file_name
@@ -109,11 +113,11 @@ def delete_records(인덱스):
     else:
         val = account_book.loc[인덱스-1].to_frame().T
         account_book.drop(인덱스-1, axis=0, inplace=True)
-        update_csv(account_book)
+        update_csv(file_name, account_book)
     return val
 
 def 조회():
-    view_interface = gr.Interface(fn = view_records, inputs=None, outputs="dataframe", 
+    gr.Interface(fn = view_records, inputs=None, outputs="dataframe", 
                                   title="가계부", allow_flagging='never', live=True)
 
 def 입력():
@@ -136,7 +140,7 @@ def 수정():
     메모 = gr.Textbox(label="메모", placeholder="메모를 남겨보세요")
     correction_button = gr.Button("수정하기")
     correction_button.click(correct_records, inputs=([인덱스,분류,날짜,사용처,금액,카테고리,메모]), outputs=None)
-    index_interface = gr.Interface(fn = view_index, inputs=None, outputs="dataframe", 
+    gr.Interface(fn = view_index, inputs=None, outputs="dataframe", 
                                    title="가계부", allow_flagging='never', live=True)
 
 def 삭제():
@@ -146,8 +150,9 @@ def 삭제():
                  allow_flagging='never')
 
 def 가계부_삭제():
-    button = gr.Button("가계부 삭제하기")
-    button.click(delete_csv)
+    global file_name
+    del_button = gr.Button("가계부 삭제하기")
+    del_button.click(delete_csv)
 
 
 def interface():
