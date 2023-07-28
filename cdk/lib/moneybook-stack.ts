@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { MoneybookLambdaStack } from './stack/lambda-stack';
-import {MoneybookS3Stack} from './stack/s3-stack'
+import { MoneybookS3Stack } from './stack/s3-stack';
 import { Account } from './config/accounts';
 import { SYSTEM_NAME } from "./config/commons";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -12,9 +12,8 @@ export interface MoneybookStackProps extends cdk.StackProps {
 }
 
 export class MoneybookStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props : MoneybookStackProps) {
+  constructor(scope: Construct, id: string, props: MoneybookStackProps) {
     super(scope, id, props);
-
     const s3Stack = new MoneybookS3Stack(this, `${SYSTEM_NAME}-s3Stack`, props);
     props.s3Stack = s3Stack;
 

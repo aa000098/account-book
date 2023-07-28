@@ -13,40 +13,63 @@ dropdown_category = ["식비", "카페ㆍ간식", "편의점ㆍ마트ㆍ잡화",
                      "미용", "교통ㆍ자동차", "여행ㆍ숙박", "교육", "생활", "기부ㆍ후원", 
                      "카테고리 없음", "ATM 출금", "이체", "급여", "저축ㆍ투자"]
 
-def get_csv(file_name):
-    
-    session = boto3.Session()
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(os.getenv("BUCKET_NAME"))
-    try:
-        object = bucket.Object(file_name)
-    except:
-        object = create_csv(file_name)
-    csv_content = object.get()['Body'].read()
-    account_book = pd.read_csv(io.BytesIO(csv_content))
-    return account_book
-
 def create_csv(file_name):
+    df = pd.DataFrame(columns = ['분류','날짜','사용처','금액','카테고리','메모'])
+    account_book = df.to_csv(index=False)
+
     lambda_client = boto3.client("lambda")
     response = lambda_client.invoke(
         FunctionName = 'son-hyunho-ICN-handler-file',
         InvocationType = 'RequestResponse',
         Payload = json.dumps({
             "method" : "create",
-            "file_name" : file_name
+            "file_name" : file_name,
+            "file_contents" : account_book
         })
     )
-    response_payload = response['Payload'].read().decode('utf-8')
+    return response
     
+def get_csv(file_name):
+    lambda_client = boto3.client("lambda")
+    response = lambda_client.invoke(
+        FunctionName = 'son-hyunho-ICN-handler-file',
+        InvocationType = 'RequestResponse',
+        Payload = json.dumps({
+            "method" : "read",
+            "file_name" : file_name,
+        })
+    )
+    if (response['statusCode'].read().decode('utf-8') != 200):
+        response = create_csv(file_name)
 
+    csv_content = response['file_contents'].read()
+    account_book = pd.read_csv(io.BytesIO(csv_content))
+    return account_book
 
-def update_csv(account_book):
-    global file_name
+def update_csv(file_name, account_book):
     csv_file = account_book.to_csv(index=False)
-    session = boto3.Session()
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(os.getenv("BUCKET_NAME"))
-    bucket.put_object(Body = csv_file, Key = file_name)
+    
+    lambda_client = boto3.client("lambda")
+    response = lambda_client.invoke(
+        FunctionName = 'son-hyunho-ICN-handler-file',
+        InvocationType = 'RequestResponse',
+        Payload = json.dumps({
+            "method" : "update",
+            "file_name" : file_name,
+            "file_contents" : account_book
+        })
+    )
+
+def delete_csv(file_name):
+    lambda_client = boto3.client("lambda")
+    response = lambda_client.invoke(
+        FunctionName = 'son-hyunho-ICN-handler-file',
+        InvocationType = 'RequestResponse',
+        Payload = json.dumps({
+            "method" : "delete",
+            "file_name" : file_name,
+        })
+    )
 
 #-----------------------------------------------
 def view_records():
@@ -59,7 +82,7 @@ def input_records(분류,날짜,사용처,금액,카테고리,메모):
     new_record = pd.DataFrame([[분류, 날짜, 사용처, 금액, 카테고리, 메모]], 
                               columns=['분류', '날짜', '사용처', '금액', '카테고리', '메모'])
     account_book = pd.concat([account_book, new_record])
-    update_csv(account_book)
+    update_csv(file_name, account_book)
 
 def correct_records(인덱스,분류,날짜,사용처,금액,카테고리,메모):
     global file_name
@@ -122,6 +145,11 @@ def 삭제():
                  outputs="dataframe", 
                  allow_flagging='never')
 
+def 가계부_삭제():
+    button = gr.Button("가계부 삭제하기")
+    button.click(delete_csv)
+
+
 def interface():
     with gr.Blocks() as app_interface:
         with gr.Tab("조회"):
@@ -132,6 +160,8 @@ def interface():
             수정()
         with gr.Tab("삭제"):
             삭제()
+        with gr.Tab("가계부 삭제"):
+            가계부_삭제()
         
     app_interface.launch()
 

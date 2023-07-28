@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { getAccountUniqueName } from "../config/accounts";
 import { MoneybookStackProps } from "../moneybook-stack";
-import { SYSTEM_NAME } from "../config/commons"
+import { SYSTEM_NAME } from "../config/commons";
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { CompositePrincipal, ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import path = require('path');
